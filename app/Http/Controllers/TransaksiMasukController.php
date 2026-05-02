@@ -19,7 +19,6 @@ class TransaksiMasukController extends Controller
 
     public function index()
     {
-
         $pengirim = request()->query('pengirim');
         $tanggalAwal = request()->query('tanggal_awal');
         $tanggalAkhir = request()->query('tanggal_akhir');
@@ -28,7 +27,6 @@ class TransaksiMasukController extends Controller
         $query = Transaksi::query();
         $query->orderBy('created_at','DESC');
         $query->where('jenis_transaksi',$this->jenisTransaksi);
-
 
         if($pengirim) {
             $query->where('pengirim','like','%'.$pengirim.'%');
@@ -49,7 +47,7 @@ class TransaksiMasukController extends Controller
     public function create()
     {
         $pageTitle = $this->pageTitle;
-        return view('transaksi-masuk.create', compact('pageTitle',));
+        return view('transaksi-masuk.create', compact('pageTitle'));
     }
 
     public function show($nomor_transaksi)
@@ -62,19 +60,19 @@ class TransaksiMasukController extends Controller
 
     public function store(storeTransaksiMasukRequest $request) 
     {
-        
         $validator = Validator::make($request->all(), $request->rules(), $request->messages());
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()], 422);
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $nomorTransaksi = Transaksi::generateNomorTransaksi($this->jenisTransaksi);
         $items = $request->items;
-        
 
-         $transaksi = Transaksi::create([
+        $transaksi = Transaksi::create([
             'nomor_transaksi' => $nomorTransaksi,
             'jenis_transaksi' => $this->jenisTransaksi,
             'jumlah_barang' => count($items),
@@ -83,7 +81,7 @@ class TransaksiMasukController extends Controller
             'petugas' => Auth::user()->name,
             'pengirim' => $request->pengirim,
             'kontak' => $request->kontak
-         ]);
+        ]);
 
         foreach ($items as $item) {
             $query = explode('-', $item['text']);
@@ -97,7 +95,7 @@ class TransaksiMasukController extends Controller
                     'harga_lama'        => $varian->harga_varian,
                     'harga_beli'        => $item['harga'],
                     'kenaikan_harga'    => $item['harga'] - $varian->harga_varian,
-                    'jumlah_barang'       => $item['qty'],
+                    'jumlah_barang'     => $item['qty'],
                 ]);
             }
 
@@ -111,7 +109,9 @@ class TransaksiMasukController extends Controller
                 'sub_total' => $item['sub_total'],
                 'nomor_sku' => $item['nomor_sku']
             ]);
+
             $varian->increment('stok_varian', $item['qty']);
+
             KartuStok::create([
                 'nomor_transaksi' => $nomorTransaksi,
                 'jenis_transaksi' => 'in',
@@ -123,11 +123,51 @@ class TransaksiMasukController extends Controller
         }
 
         toast()->success('Transaksi masuk berhasil ditambahkan');
+
         return response()->json([
             'success' => true,
             'redirect_url' => route('transaksi-masuk.create')
         ]);
-
     }
 
+    // ================= TAMBAHAN =================
+
+    public function getTransaksiMasuk()
+    {
+        $search = request()->query('search');
+
+        $transaksi = Transaksi::where('jenis_transaksi', 'pemasukan')
+            ->where('nomor_transaksi', 'like', '%' . $search . '%')
+            ->orderBy('created_at', 'DESC')
+            ->get()
+            ->map(function ($q) {
+                return [
+                    'id' => $q->id,
+                    'text' => $q->nomor_transaksi
+                ];
+            });
+
+        return response()->json($transaksi);
+    }
+
+    public function getDetail($id)
+{
+    $trx = Transaksi::with('items.varian')->find($id);
+
+    if (!$trx) {
+        return response()->json(['message' => 'Data tidak ditemukan'], 404);
+    }
+
+    return response()->json([
+        'nomor_transaksi' => $trx->nomor_transaksi,
+        'created_at' => Carbon::parse($trx->created_at)
+            ->locale('id')
+            ->translatedFormat('l, d F Y'),
+        'pengirim' => $trx->pengirim,
+        'kontak' => $trx->kontak,
+        'jumlah_barang' => $trx->jumlah_barang,
+        'total_harga' => $trx->total_harga,
+        'items' => $trx->items
+    ]);
+}
 }

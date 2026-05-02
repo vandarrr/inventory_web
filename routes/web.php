@@ -32,6 +32,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/transaksi-keluar', [TransaksiKeluarController::class, 'getTransaksiKeluar'])->name('transaksi-keluar');
         Route::get('/transaksi-keluar/{nomor_transaksi}', [TransaksiKeluarController::class, 'getTransaksiKeluarItems'])->name('transaksi-keluar-items');
         Route::get('/transaksi-keluar-detail/{id}', [TransaksiKeluarController::class, 'getDetail']);
+
+        Route::get('/transaksi-masuk', [TransaksiMasukController::class, 'getTransaksiMasuk'])->name('transaksi-masuk');
+        Route::get('/transaksi-masuk-detail/{id}', [TransaksiMasukController::class, 'getDetail']);
     });
 
     Route::post('export-laporan-transaksi', [ExportLaporanTransaksiController::class, 'exportLaporanTransaksi'])->name
