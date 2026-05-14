@@ -7,7 +7,11 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <!-- 🔥 TITLE DINAMIS -->
+    <title>@yield('title', 'Inventory LPG')</title>
+
+    <!-- 🔥 FAVICON -->
+    <link rel="icon" type="image/png" href="{{ asset('images/elpigi.png') }}">
 
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.bunny.net">
@@ -16,11 +20,17 @@
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 </head>
+
 <body>
-    <div id="app" class="vh-100 d-flex justify-content-center align-items-center">
-        <main class="col-6">
-            @yield('content')
+    <div id="app" class="min-vh-100 d-flex align-items-center justify-content-center">
+
+        <!-- 🔥 WRAPPER FLEXIBLE (TIDAK KEKUNCI COL-6) -->
+        <main class="w-100 d-flex justify-content-center px-3">
+            <div style="max-width: 600px; width: 100%;">
+                @yield('content')
+            </div>
         </main>
+
     </div>
 </body>
 </html>

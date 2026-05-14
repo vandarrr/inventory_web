@@ -25,17 +25,17 @@ class TransaksiMasukController extends Controller
         $perPage = request()->query('perPage', 10);
 
         $query = Transaksi::query();
-        $query->orderBy('created_at','DESC');
-        $query->where('jenis_transaksi',$this->jenisTransaksi);
+        $query->orderBy('created_at', 'DESC');
+        $query->where('jenis_transaksi', $this->jenisTransaksi);
 
-        if($pengirim) {
-            $query->where('pengirim','like','%'.$pengirim.'%');
+        if ($pengirim) {
+            $query->where('pengirim', 'like', '%' . $pengirim . '%');
         }
 
-        if($tanggalAwal && $tanggalAkhir) {
+        if ($tanggalAwal && $tanggalAkhir) {
             $tanggalAwal = Carbon::parse($tanggalAwal)->startOfDay();
             $tanggalAkhir = Carbon::parse($tanggalAkhir)->startOfDay();
-            $query->whereBetween('created_at',[$tanggalAwal,$tanggalAkhir]);
+            $query->whereBetween('created_at', [$tanggalAwal, $tanggalAkhir]);
         }
 
         $transaksi = $query->paginate($perPage)->appends(request()->query());
@@ -52,13 +52,19 @@ class TransaksiMasukController extends Controller
 
     public function show($nomor_transaksi)
     {
-        $pageTitle = "Detail " .  $this->pageTitle;
-        $transaksi = Transaksi::with('items')->where('nomor_transaksi', $nomor_transaksi)->first();
-        $transaksi->formated_date = Carbon::parse($transaksi->created_at)->locale('id')->translatedFormat('l, d F Y');
+        $pageTitle = "Detail " . $this->pageTitle;
+        $transaksi = Transaksi::with('items')
+            ->where('nomor_transaksi', $nomor_transaksi)
+            ->first();
+
+        $transaksi->formated_date = Carbon::parse($transaksi->created_at)
+            ->locale('id')
+            ->translatedFormat('l, d F Y');
+
         return view('transaksi-masuk.show', compact('transaksi', 'pageTitle'));
     }
 
-    public function store(storeTransaksiMasukRequest $request) 
+    public function store(storeTransaksiMasukRequest $request)
     {
         $validator = Validator::make($request->all(), $request->rules(), $request->messages());
 
@@ -84,10 +90,11 @@ class TransaksiMasukController extends Controller
         ]);
 
         foreach ($items as $item) {
+
             $query = explode('-', $item['text']);
             $varian = VarianProduk::where('nomor_sku', $item['nomor_sku'])->first();
 
-            if($item['harga'] > $varian->harga_varian) {
+            if ($item['harga'] > $varian->harga_varian) {
                 LaporanKenaikanHarga::create([
                     'nomor_transaksi'   => $nomorTransaksi,
                     'nomor_batch'       => $item['nomor_batch'],
@@ -130,7 +137,7 @@ class TransaksiMasukController extends Controller
         ]);
     }
 
-    // ================= TAMBAHAN =================
+    // ================= API =================
 
     public function getTransaksiMasuk()
     {
@@ -151,23 +158,63 @@ class TransaksiMasukController extends Controller
     }
 
     public function getDetail($id)
-{
-    $trx = Transaksi::with('items.varian')->find($id);
+    {
+        $trx = Transaksi::with('items.varian')->find($id);
 
-    if (!$trx) {
-        return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        if (!$trx) {
+            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'nomor_transaksi' => $trx->nomor_transaksi,
+            'created_at' => Carbon::parse($trx->created_at)
+                ->locale('id')
+                ->translatedFormat('l, d F Y'),
+            'pengirim' => $trx->pengirim,
+            'kontak' => $trx->kontak,
+            'jumlah_barang' => $trx->jumlah_barang,
+            'total_harga' => $trx->total_harga,
+            'items' => $trx->items
+        ]);
     }
 
-    return response()->json([
-        'nomor_transaksi' => $trx->nomor_transaksi,
-        'created_at' => Carbon::parse($trx->created_at)
-            ->locale('id')
-            ->translatedFormat('l, d F Y'),
-        'pengirim' => $trx->pengirim,
-        'kontak' => $trx->kontak,
-        'jumlah_barang' => $trx->jumlah_barang,
-        'total_harga' => $trx->total_harga,
-        'items' => $trx->items
-    ]);
-}
+    // ================= 🔥 CLEAN DATA LAMA =================
+
+    public function cleanHistory()
+    {
+        // batas: 3 bulan terakhir
+        $tanggal = now()->subDays(2);
+
+        $transaksiList = Transaksi::with('items')
+            ->where('jenis_transaksi', $this->jenisTransaksi)
+            ->where('created_at', '<', $tanggal)
+            ->get();
+
+        foreach ($transaksiList as $trx) {
+
+            foreach ($trx->items as $item) {
+
+                // rollback stok
+                $varian = VarianProduk::where('nomor_sku', $item->nomor_sku)->first();
+
+                if ($varian) {
+                    $varian->decrement('stok_varian', $item->qty);
+                }
+
+                // hapus kartu stok
+                KartuStok::where('nomor_transaksi', $trx->nomor_transaksi)->delete();
+            }
+
+            // hapus items
+            $trx->items()->delete();
+
+            // hapus transaksi
+            $trx->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data transaksi lama berhasil dibersihkan'
+        ]);
+    }
 }

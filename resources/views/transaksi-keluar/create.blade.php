@@ -146,6 +146,7 @@ $(document).ready(function() {
         } else {
             selectedProduk.push({
                 nomor_sku: selectedOption.nomor_sku,
+                 nomor_batch: selectedOption.nomor_batch ?? null,
                 text: selectedOption.text,
                 qty: qty,
                 harga: harga,

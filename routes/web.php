@@ -53,5 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('transaksi-masuk', TransaksiMasukController::class)->only(['index', 'create', 'store', 'show']);
     Route::resource('transaksi-keluar', TransaksiKeluarController::class)->only(['index', 'create', 'store', 'show']);
     Route::resource('transaksi-retur', TransaksiReturController::class)->only(['index', 'create', 'store', 'show']);
+    
+    Route::delete('/transaksi-masuk-clean', [TransaksiMasukController::class, 'cleanHistory'])->name('transaksi-masuk.clean');
 
 });

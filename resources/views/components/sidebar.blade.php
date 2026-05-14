@@ -1,15 +1,14 @@
 <div class="sidebar" data-background-color="dark">
         <div class="sidebar-logo">
           <!-- Logo Header -->
-          <div class="logo-header" data-background-color="green">
-            <a href="/home" class="logo">
-              <img
-                src="{{ asset('template') }}/assets/img/kaiadmin/logo_light.svg"
-                alt="navbar brand"
-                class="navbar-brand"
-                height="20"
+          <div class="logo-header" data-background-color="orange">
+           <a href="/home" class="logo d-flex align-items-center gap-2" style="padding:8px 0;">
+            <img
+              src="{{ asset('images/logo-pertamina.png') }}"
+              alt="logo"
+              style="height:100px; width:auto; object-fit:contain;"
               />
-            </a>
+          </a>
             <div class="nav-toggle">
               <button class="btn btn-toggle toggle-sidebar">
                 <i class="gg-menu-right"></i>

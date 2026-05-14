@@ -35,9 +35,10 @@
                         </a>
                     </td>
                     <td>{{ $item->nomor_transaksi }}</td>
-                    <td>{{ $item->transaksi->pengirim }}</td>
+                    <td>{{ $item->transaksi->pengirim ?? '-' }}</td>
                     <td>{{ number_format($item->jumlah_barang) }} pcs</td>
                     <td>Rp. {{ number_format($item->jumlah_harga) }}</td>
+                    
                 </tr>
                 @empty
                 <tr>
